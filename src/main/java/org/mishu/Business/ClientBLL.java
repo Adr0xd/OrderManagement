@@ -1,0 +1,69 @@
+package org.mishu.Business;
+
+import org.mishu.Exceptions.DuplicateEmailException;
+import org.mishu.Business.Validator.Client.EmailValidator;
+import org.mishu.Business.Validator.Validator;
+import org.mishu.Dao.ClientDAO;
+import org.mishu.Model.Client;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+
+public class ClientBLL {
+
+    private final Validator<Client> emailValidator;
+
+    private final ClientDAO dao;
+
+    public ClientBLL() {
+        emailValidator = new EmailValidator();
+
+        dao = new ClientDAO(Client.class);
+    }
+
+    public Client findClientById(int clientId) {
+        Client c = dao.findById(clientId);
+        if (c == null) {
+            throw new NoSuchElementException("The client with id=" + clientId + " does " +
+                    "not exist");
+        }
+        return c;
+    }
+
+    public Client findClientByEmail(String email) {
+        Client c = dao.findByEmail(email);
+        if (c == null) {
+            throw new NoSuchElementException("The client with email=" + email + "does not" +
+                    " exist");
+        }
+        return c;
+    }
+
+    public Client findClientByName(String name) {
+        Client c = dao.findClientByName(name);
+        if (c == null) {
+            throw new NoSuchElementException("The client with name=" + name + "does " +
+                    "not" +
+                    " exist");
+        }
+        return c;
+    }
+
+    public List<Client> findClientsByName(String name) {
+        List<Client> clients = dao.findClientsByName(name);
+        if(clients == null){
+            throw new NoSuchElementException("No clients with name=" + name + "exist");
+        }
+        return clients;
+    }
+
+
+    public int insertClient(Client client) {
+        emailValidator.validate(client);
+        if (dao.findByEmail(client.getEmail()) != null) {
+            throw new DuplicateEmailException("email already in use");
+        }
+        return dao.insert(client);
+    }
+
+}
