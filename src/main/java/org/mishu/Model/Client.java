@@ -6,6 +6,10 @@ public class Client {
     private String address;
     private String email;
 
+    public Client() {
+
+    }
+
     public Client(int id, String name, String address, String email) {
         super();
         this.id = id;

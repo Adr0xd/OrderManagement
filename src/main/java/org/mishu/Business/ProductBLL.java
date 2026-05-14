@@ -45,7 +45,7 @@ public class ProductBLL {
 
     public List<Product> findProductsByName(String name) {
         List<Product> p = dbWrapper.findProductsByName(name);
-        if (p == null) {
+        if (p == null || p.isEmpty()) {
             throw new NoSuchElementException("No products with this name=" + name +
                     " exist");
         }
@@ -54,7 +54,7 @@ public class ProductBLL {
 
     public List<Product> findProductsByPrice(double price) {
         List<Product> p = dbWrapper.findProductsByPrice(price);
-        if (p == null) {
+        if (p == null || p.isEmpty()) {
             throw new NoSuchElementException("No products for this price=" + price +
                     " exist");
         }
@@ -63,7 +63,7 @@ public class ProductBLL {
 
     public List<Product> findProductsByQuantity(int quantity) {
         List<Product> p = dbWrapper.findProductsByQty(quantity);
-        if (p == null) {
+        if (p == null || p.isEmpty()) {
             throw new NoSuchElementException("No products with this quantity=" + quantity +
                     " exist");
         }
@@ -75,5 +75,29 @@ public class ProductBLL {
             v.validate(product);
         }
         return dbWrapper.insert(product);
+    }
+
+    public void deleteProduct(int productId) {
+        dbWrapper.delete(productId);
+    }
+
+    public void updateProduct(int productId, String name, Double price,
+                              Integer quantity) {
+        Product p = dbWrapper.findById(productId);
+        if (p == null) {
+            throw new NoSuchElementException("Product with id=" + productId + " does " +
+                    "not exist");
+        }
+
+        p.setName(name == null ? p.getName() : name);
+        p.setPrice(price == null ? p.getPrice() : price);
+        p.setQuantity(quantity == null ? p.getQuantity() : quantity);
+
+        for (Validator<Product> v : validators) {
+            v.validate(p);
+        }
+
+        dbWrapper.update(p);
+
     }
 }

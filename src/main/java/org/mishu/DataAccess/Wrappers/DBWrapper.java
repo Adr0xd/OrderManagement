@@ -6,10 +6,7 @@ import org.mishu.Utils.QuerySettings;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -25,8 +22,7 @@ public class DBWrapper<T> {
 
     @SuppressWarnings("unchecked")
     public DBWrapper(Class<T> type) {
-        this.type =
-                (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        this.type = type;
     }
 
     private String createSelectAllQuery() {
@@ -204,7 +200,8 @@ public class DBWrapper<T> {
         Connection dbConnection = ConnectionFactory.getConnection();
         PreparedStatement insertStatement = null;
         try {
-            insertStatement = dbConnection.prepareStatement(createInsertQuery());
+            insertStatement = dbConnection.prepareStatement(createInsertQuery(),
+                    Statement.RETURN_GENERATED_KEYS);
             Field[] fields = type.getDeclaredFields();
             for (int i = 1; i < fields.length; i++) {
                 fields[i].setAccessible(true);

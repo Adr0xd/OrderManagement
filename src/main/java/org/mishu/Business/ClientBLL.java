@@ -1,9 +1,9 @@
 package org.mishu.Business;
 
-import org.mishu.Exceptions.DuplicateEmailException;
 import org.mishu.Business.Validator.Client.EmailValidator;
 import org.mishu.Business.Validator.Validator;
 import org.mishu.DataAccess.Wrappers.ClientDBWrapper;
+import org.mishu.Exceptions.DuplicateEmailException;
 import org.mishu.Model.Client;
 
 import java.util.List;
@@ -51,7 +51,7 @@ public class ClientBLL {
 
     public List<Client> findClientsByName(String name) {
         List<Client> clients = dbWrapper.findClientsByName(name);
-        if(clients == null){
+        if (clients == null || clients.isEmpty()) {
             throw new NoSuchElementException("No clients with name=" + name + "exist");
         }
         return clients;
@@ -64,6 +64,33 @@ public class ClientBLL {
             throw new DuplicateEmailException("email already in use");
         }
         return dbWrapper.insert(client);
+    }
+
+    public void deleteClient(int clientId) {
+        dbWrapper.delete(clientId);
+    }
+
+    public void updateClient(int clientId, String name, String email, String address) {
+        Client c = dbWrapper.findById(clientId);
+
+        if (c == null) {
+            throw new NoSuchElementException(
+                    "No client with id=" + clientId + " to update");
+        }
+
+        c.setName(name == null ? c.getName() : name);
+        c.setEmail(email == null ? c.getEmail() : email);
+        c.setAddress(address == null ? c.getAddress() : address);
+
+        emailValidator.validate(c);
+
+        Client existing = dbWrapper.findByEmail(c.getEmail());
+
+        if (existing != null && existing.getId() != clientId) {
+            throw new DuplicateEmailException("email already in use");
+        }
+
+        dbWrapper.update(c);
     }
 
 }
