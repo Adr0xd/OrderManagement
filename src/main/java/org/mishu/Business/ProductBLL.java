@@ -14,18 +14,18 @@ public class ProductBLL {
 
     private final List<Validator<Product>> validators;
 
-    private final ProductDBWrapper dao;
+    private final ProductDBWrapper dbWrapper;
 
     public ProductBLL() {
         this.validators = new ArrayList<>();
         validators.add(new PriceValidator());
         validators.add(new QtyValidator());
 
-        this.dao = new ProductDBWrapper(Product.class);
+        this.dbWrapper = new ProductDBWrapper(Product.class);
     }
 
     public Product findProductById(int productId) {
-        Product p = dao.findById(productId);
+        Product p = dbWrapper.findById(productId);
         if (p == null) {
             throw new NoSuchElementException("Product with id=" + productId + " does " +
                     "not exist");
@@ -34,7 +34,7 @@ public class ProductBLL {
     }
 
     public Product findProductByName(String name) {
-        Product p = dao.findProductByName(name);
+        Product p = dbWrapper.findProductByName(name);
         if (p == null) {
             throw new NoSuchElementException("Product with name=" + name + " " +
                     "does " +
@@ -44,7 +44,7 @@ public class ProductBLL {
     }
 
     public List<Product> findProductsByName(String name) {
-        List<Product> p = dao.findProductsByName(name);
+        List<Product> p = dbWrapper.findProductsByName(name);
         if (p == null) {
             throw new NoSuchElementException("No products with this name=" + name +
                     " exist");
@@ -53,7 +53,7 @@ public class ProductBLL {
     }
 
     public List<Product> findProductsByPrice(double price) {
-        List<Product> p = dao.findProductsByPrice(price);
+        List<Product> p = dbWrapper.findProductsByPrice(price);
         if (p == null) {
             throw new NoSuchElementException("No products for this price=" + price +
                     " exist");
@@ -62,7 +62,7 @@ public class ProductBLL {
     }
 
     public List<Product> findProductsByQuantity(int quantity) {
-        List<Product> p = dao.findProductsByQty(quantity);
+        List<Product> p = dbWrapper.findProductsByQty(quantity);
         if (p == null) {
             throw new NoSuchElementException("No products with this quantity=" + quantity +
                     " exist");
@@ -74,6 +74,6 @@ public class ProductBLL {
         for (Validator<Product> v : validators) {
             v.validate(product);
         }
-        return dao.insert(product);
+        return dbWrapper.insert(product);
     }
 }

@@ -13,16 +13,16 @@ public class ClientBLL {
 
     private final Validator<Client> emailValidator;
 
-    private final ClientDBWrapper dao;
+    private final ClientDBWrapper dbWrapper;
 
     public ClientBLL() {
         emailValidator = new EmailValidator();
 
-        dao = new ClientDBWrapper(Client.class);
+        dbWrapper = new ClientDBWrapper(Client.class);
     }
 
     public Client findClientById(int clientId) {
-        Client c = dao.findById(clientId);
+        Client c = dbWrapper.findById(clientId);
         if (c == null) {
             throw new NoSuchElementException("The client with id=" + clientId + " does " +
                     "not exist");
@@ -31,7 +31,7 @@ public class ClientBLL {
     }
 
     public Client findClientByEmail(String email) {
-        Client c = dao.findByEmail(email);
+        Client c = dbWrapper.findByEmail(email);
         if (c == null) {
             throw new NoSuchElementException("The client with email=" + email + "does not" +
                     " exist");
@@ -40,7 +40,7 @@ public class ClientBLL {
     }
 
     public Client findClientByName(String name) {
-        Client c = dao.findClientByName(name);
+        Client c = dbWrapper.findClientByName(name);
         if (c == null) {
             throw new NoSuchElementException("The client with name=" + name + "does " +
                     "not" +
@@ -50,7 +50,7 @@ public class ClientBLL {
     }
 
     public List<Client> findClientsByName(String name) {
-        List<Client> clients = dao.findClientsByName(name);
+        List<Client> clients = dbWrapper.findClientsByName(name);
         if(clients == null){
             throw new NoSuchElementException("No clients with name=" + name + "exist");
         }
@@ -60,10 +60,10 @@ public class ClientBLL {
 
     public int insertClient(Client client) {
         emailValidator.validate(client);
-        if (dao.findByEmail(client.getEmail()) != null) {
+        if (dbWrapper.findByEmail(client.getEmail()) != null) {
             throw new DuplicateEmailException("email already in use");
         }
-        return dao.insert(client);
+        return dbWrapper.insert(client);
     }
 
 }
