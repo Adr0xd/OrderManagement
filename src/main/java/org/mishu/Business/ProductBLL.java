@@ -3,7 +3,7 @@ package org.mishu.Business;
 import org.mishu.Business.Validator.Product.PriceValidator;
 import org.mishu.Business.Validator.Product.QtyValidator;
 import org.mishu.Business.Validator.Validator;
-import org.mishu.Dao.ProductDAO;
+import org.mishu.DataAccess.Wrappers.ProductDBWrapper;
 import org.mishu.Model.Product;
 
 import java.util.ArrayList;
@@ -14,14 +14,14 @@ public class ProductBLL {
 
     private final List<Validator<Product>> validators;
 
-    private final ProductDAO dao;
+    private final ProductDBWrapper dao;
 
     public ProductBLL() {
         this.validators = new ArrayList<>();
         validators.add(new PriceValidator());
         validators.add(new QtyValidator());
 
-        this.dao = new ProductDAO(Product.class);
+        this.dao = new ProductDBWrapper(Product.class);
     }
 
     public Product findProductById(int productId) {

@@ -1,4 +1,4 @@
-package org.mishu.Data;
+package org.mishu.DataAccess;
 
 import java.sql.*;
 import java.util.logging.Level;

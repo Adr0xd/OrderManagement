@@ -3,7 +3,7 @@ package org.mishu.Business;
 import org.mishu.Exceptions.DuplicateEmailException;
 import org.mishu.Business.Validator.Client.EmailValidator;
 import org.mishu.Business.Validator.Validator;
-import org.mishu.Dao.ClientDAO;
+import org.mishu.DataAccess.Wrappers.ClientDBWrapper;
 import org.mishu.Model.Client;
 
 import java.util.List;
@@ -13,12 +13,12 @@ public class ClientBLL {
 
     private final Validator<Client> emailValidator;
 
-    private final ClientDAO dao;
+    private final ClientDBWrapper dao;
 
     public ClientBLL() {
         emailValidator = new EmailValidator();
 
-        dao = new ClientDAO(Client.class);
+        dao = new ClientDBWrapper(Client.class);
     }
 
     public Client findClientById(int clientId) {

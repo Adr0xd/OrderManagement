@@ -1,6 +1,7 @@
-package org.mishu.Dao;
+package org.mishu.DataAccess.Wrappers;
 
-import org.mishu.Data.ConnectionFactory;
+import org.mishu.DataAccess.ConnectionFactory;
+import org.mishu.Utils.QuerySettings;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
@@ -15,15 +16,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class AbstractDAO<T> {
+public class DBWrapper<T> {
 
     private static final Logger LOGGER =
-            Logger.getLogger(AbstractDAO.class.getName());
+            Logger.getLogger(DBWrapper.class.getName());
 
     private final Class<T> type;
 
     @SuppressWarnings("unchecked")
-    public AbstractDAO(Class<T> type) {
+    public DBWrapper(Class<T> type) {
         this.type =
                 (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
@@ -40,6 +41,16 @@ public class AbstractDAO<T> {
     protected String createSelectLikeQuery(String field) {
         return "SELECT * FROM " + type.getSimpleName()
                 + " WHERE " + field + " LIKE ?";
+    }
+
+    protected String createSelectLessThan(String field) {
+        return "SELECT * FROM " + type.getSimpleName()
+                + " WHERE " + field + " < ?";
+    }
+
+    protected String createSelectGreaterThan(String field) {
+        return "SELECT * FROM " + type.getSimpleName()
+                + " WHERE " + field + " > ?";
     }
 
     private String createInsertQuery() {
@@ -139,8 +150,7 @@ public class AbstractDAO<T> {
     public List<T> get(Object fieldValue,
                        String fieldName,
                        String query,
-                       boolean all,
-                       boolean useLike) {
+                       QuerySettings querySettings) {
 
         Connection dbConnection = null;
         PreparedStatement statement = null;
@@ -153,13 +163,15 @@ public class AbstractDAO<T> {
 
             switch (fieldValue) {
                 case String _ -> {
-                    if (useLike) {
+                    if (querySettings.useLike()) {
                         statement.setString(1, "%" + fieldValue + "%");
                     } else {
                         statement.setString(1, fieldValue.toString());
                     }
                 }
-                case Integer i -> statement.setInt(1, i);
+                case Integer i -> {
+                    statement.setInt(1, i);
+                }
                 case Double v -> statement.setDouble(1, v);
                 default -> statement.setString(1, fieldValue.toString());
             }
@@ -169,7 +181,7 @@ public class AbstractDAO<T> {
 
             List<T> objects = createObjects(resultSet);
 
-            if (!all) {
+            if (!querySettings.all()) {
                 return objects.isEmpty() ? null : List.of(objects.getFirst());
             }
 
