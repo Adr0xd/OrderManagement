@@ -78,6 +78,10 @@ public class ProductBLL {
     }
 
     public void deleteProduct(int productId) {
+        Product p = dbWrapper.findById(productId);
+        if (p == null) {
+            throw new NoSuchElementException("Product with id=" + productId + " does not exist");
+        }
         dbWrapper.delete(productId);
     }
 

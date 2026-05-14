@@ -20,7 +20,6 @@ public class DBWrapper<T> {
 
     private final Class<T> type;
 
-    @SuppressWarnings("unchecked")
     public DBWrapper(Class<T> type) {
         this.type = type;
     }
@@ -110,7 +109,8 @@ public class DBWrapper<T> {
             statement.setInt(1, id);
             resultSet = statement.executeQuery();
 
-            return createObjects(resultSet).getFirst();
+            List<T> objects = createObjects(resultSet);
+            return objects.isEmpty() ? null : objects.getFirst();
         } catch (SQLException e) {
             LOGGER.log(Level.WARNING, type.getName() + "DAO:findById " + e.getMessage());
         } finally {

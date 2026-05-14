@@ -1,11 +1,9 @@
 package org.mishu;
 
 import org.mishu.Business.ClientBLL;
-import org.mishu.Business.ProductBLL;
 import org.mishu.Business.OrdersBLL;
-import org.mishu.Model.Client;
+import org.mishu.Business.ProductBLL;
 import org.mishu.Model.Product;
-import org.mishu.Model.Orders;
 
 public class Main {
     public static void main(String[] args) {
@@ -29,7 +27,7 @@ public class Main {
 
         clientBLL.deleteClient(2);
 
-        System.out.println("Deleted clientId="+2);
+        System.out.println("Deleted clientId=" + 2);
 
         clientBLL.updateClient(3, "Maricica", "alice@example.com", "1922 drive");
 

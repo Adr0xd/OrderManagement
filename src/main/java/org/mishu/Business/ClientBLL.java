@@ -5,6 +5,7 @@ import org.mishu.Business.Validator.Validator;
 import org.mishu.DataAccess.Wrappers.ClientDBWrapper;
 import org.mishu.Exceptions.DuplicateEmailException;
 import org.mishu.Model.Client;
+import org.mishu.Model.Product;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -67,6 +68,11 @@ public class ClientBLL {
     }
 
     public void deleteClient(int clientId) {
+        Client c = dbWrapper.findById(clientId);
+        if (c == null) {
+            throw new NoSuchElementException("Product with id=" + clientId + " does not " +
+                    "exist");
+        }
         dbWrapper.delete(clientId);
     }
 
