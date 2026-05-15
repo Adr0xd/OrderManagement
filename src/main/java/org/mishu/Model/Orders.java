@@ -16,7 +16,6 @@ public class Orders {
     private int productId;
     private int quantity;
 
-
     public Orders() {
 
     }
@@ -33,6 +32,7 @@ public class Orders {
         this.productId = productId;
         this.quantity = quantity;
     }
+
 
     public int getId() {
         return id;
