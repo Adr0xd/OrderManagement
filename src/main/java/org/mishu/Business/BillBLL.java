@@ -8,21 +8,27 @@ import java.util.NoSuchElementException;
 
 public class BillBLL {
 
-    private final BillDBWrapper dbWrapper;
+	private final BillDBWrapper dbWrapper;
 
-    public BillBLL() {
-        dbWrapper = new BillDBWrapper(Bill.class);
-    }
+	public BillBLL() {
+		dbWrapper = new BillDBWrapper(Bill.class);
+	}
 
-    public List<Bill> findAllBills() {
-        return dbWrapper.findAll();
-    }
+	public List<Bill> findAllBills() {
+		return dbWrapper.findAll();
+	}
 
-    public Bill findBillByOrderId(int orderId) {
-        Bill b = dbWrapper.findByOrderId(orderId);
-        if (b == null) {
-            throw new NoSuchElementException("No bill for orderId=" + orderId);
-        }
-        return b;
-    }
+	/**
+	 *
+	 * @param orderId
+	 *            to fetch the bill for
+	 * @return Bill object for that order
+	 */
+	public Bill findBillByOrderId(int orderId) {
+		Bill b = dbWrapper.findByOrderId(orderId);
+		if (b == null) {
+			throw new NoSuchElementException("No bill for orderId=" + orderId);
+		}
+		return b;
+	}
 }

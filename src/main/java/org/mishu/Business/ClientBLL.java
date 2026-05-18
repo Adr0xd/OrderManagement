@@ -12,91 +12,97 @@ import java.util.NoSuchElementException;
 
 public class ClientBLL {
 
-    private final Validator<Client> emailValidator;
+	private final Validator<Client> emailValidator;
 
-    private final ClientDBWrapper dbWrapper;
+	private final ClientDBWrapper dbWrapper;
 
-    public ClientBLL() {
-        emailValidator = new EmailValidator();
+	public ClientBLL() {
+		emailValidator = new EmailValidator();
 
-        dbWrapper = new ClientDBWrapper(Client.class);
-    }
+		dbWrapper = new ClientDBWrapper(Client.class);
+	}
 
-    public Client findClientById(int clientId) {
-        Client c = dbWrapper.findById(clientId);
-        if (c == null) {
-            throw new NoSuchElementException("The client with id=" + clientId + " does " +
-                    "not exist");
-        }
-        return c;
-    }
+	/**
+	 *
+	 * @return list of all clients in the table
+	 */
+	public List<Client> findAll() {
+		return dbWrapper.findAll();
+	}
 
-    public Client findClientByEmail(String email) {
-        Client c = dbWrapper.findByEmail(email);
-        if (c == null) {
-            throw new NoSuchElementException("The client with email=" + email + "does not" +
-                    " exist");
-        }
-        return c;
-    }
+	/**
+	 *
+	 * @param name
+	 *            name of client to be fetched
+	 * @return exact client with that name
+	 */
+	public Client findClientByName(String name) {
+		Client c = dbWrapper.findClientByName(name);
+		if (c == null) {
+			throw new NoSuchElementException("The client with name=" + name + "does " + "not" + " exist");
+		}
+		return c;
+	}
 
-    public Client findClientByName(String name) {
-        Client c = dbWrapper.findClientByName(name);
-        if (c == null) {
-            throw new NoSuchElementException("The client with name=" + name + "does " +
-                    "not" +
-                    " exist");
-        }
-        return c;
-    }
+	/**
+	 *
+	 * @param client
+	 *            to be inserted into the table
+	 * @return integer representing the id of the newly inserted client
+	 */
+	public int insertClient(Client client) {
+		emailValidator.validate(client);
+		if (dbWrapper.findByEmail(client.getEmail()) != null) {
+			throw new DuplicateEmailException("email already in use");
+		}
+		return dbWrapper.insert(client);
+	}
 
-    public List<Client> findClientsByName(String name) {
-        List<Client> clients = dbWrapper.findClientsByName(name);
-        if (clients == null || clients.isEmpty()) {
-            throw new NoSuchElementException("No clients with name=" + name + "exist");
-        }
-        return clients;
-    }
+	/**
+	 *
+	 * @param clientId
+	 *            to be deleted
+	 */
+	public void deleteClient(int clientId) {
+		Client c = dbWrapper.findById(clientId);
+		if (c == null) {
+			throw new NoSuchElementException("Client with id=" + clientId + " does " +
+                    "not " + "exist");
+		}
+		dbWrapper.delete(clientId);
+	}
 
+	/**
+	 *
+	 * @param clientId
+	 *            the id of the client to be updated
+	 * @param name
+	 *            new name of client, if null keep last
+	 * @param email
+	 *            new email of client, if null keep last
+	 * @param address
+	 *            new address of client, if null keep last
+	 */
+	public void updateClient(int clientId, String name, String email, String address) {
+		Client c = dbWrapper.findById(clientId);
 
-    public int insertClient(Client client) {
-        emailValidator.validate(client);
-        if (dbWrapper.findByEmail(client.getEmail()) != null) {
-            throw new DuplicateEmailException("email already in use");
-        }
-        return dbWrapper.insert(client);
-    }
+		if (c == null) {
+			throw new NoSuchElementException("No client with id=" + clientId + " to update");
+		}
 
-    public void deleteClient(int clientId) {
-        Client c = dbWrapper.findById(clientId);
-        if (c == null) {
-            throw new NoSuchElementException("Product with id=" + clientId + " does not " +
-                    "exist");
-        }
-        dbWrapper.delete(clientId);
-    }
+		c.setName(name == null ? c.getName() : name);
+		c.setEmail(email == null ? c.getEmail() : email);
+		c.setAddress(address == null ? c.getAddress() : address);
 
-    public void updateClient(int clientId, String name, String email, String address) {
-        Client c = dbWrapper.findById(clientId);
+		emailValidator.validate(c);
 
-        if (c == null) {
-            throw new NoSuchElementException(
-                    "No client with id=" + clientId + " to update");
-        }
+		Client existing = dbWrapper.findByEmail(c.getEmail());
 
-        c.setName(name == null ? c.getName() : name);
-        c.setEmail(email == null ? c.getEmail() : email);
-        c.setAddress(address == null ? c.getAddress() : address);
+		if (existing != null && existing.getId() != clientId) {
+			throw new DuplicateEmailException("email already in use");
+		}
 
-        emailValidator.validate(c);
-
-        Client existing = dbWrapper.findByEmail(c.getEmail());
-
-        if (existing != null && existing.getId() != clientId) {
-            throw new DuplicateEmailException("email already in use");
-        }
-
-        dbWrapper.update(c);
-    }
+		dbWrapper.update(c);
+	}
 
 }

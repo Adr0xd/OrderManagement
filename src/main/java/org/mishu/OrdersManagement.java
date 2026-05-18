@@ -1,7 +1,10 @@
 package org.mishu;
 
+import org.mishu.Presentation.MainFrame;
+
 public class OrdersManagement {
-    public static void main(String[] args) {
-        System.out.println("Hello lume");
-    }
+	static void main(String[] args) {
+		System.out.println("Hello lume");
+		new MainFrame().setVisible(true);
+	}
 }
