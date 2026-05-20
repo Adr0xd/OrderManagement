@@ -3,9 +3,8 @@ package org.mishu.Business;
 import org.mishu.Business.Validator.Client.EmailValidator;
 import org.mishu.Business.Validator.Validator;
 import org.mishu.DataAccess.Wrappers.ClientDBWrapper;
-import org.mishu.Exceptions.DuplicateEmailException;
+import org.mishu.Utils.Exceptions.DuplicateEmailException;
 import org.mishu.Model.Client;
-import org.mishu.Model.Product;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -15,11 +14,13 @@ public class ClientBLL {
 	private final Validator<Client> emailValidator;
 
 	private final ClientDBWrapper dbWrapper;
+    private final OrdersBLL ordersBLL;
 
-	public ClientBLL() {
+	public ClientBLL(OrdersBLL ordersBLL) {
 		emailValidator = new EmailValidator();
 
 		dbWrapper = new ClientDBWrapper(Client.class);
+        this.ordersBLL = ordersBLL;
 	}
 
 	/**
@@ -45,18 +46,16 @@ public class ClientBLL {
 	}
 
 	/**
-	 *
-	 * @param client
-	 *            to be inserted into the table
-	 * @return integer representing the id of the newly inserted client
-	 */
-	public int insertClient(Client client) {
+     *
+     * @param client to be inserted into the table
+     */
+	public void insertClient(Client client) {
 		emailValidator.validate(client);
 		if (dbWrapper.findByEmail(client.getEmail()) != null) {
 			throw new DuplicateEmailException("email already in use");
 		}
-		return dbWrapper.insert(client);
-	}
+        dbWrapper.insert(client);
+    }
 
 	/**
 	 *
@@ -69,6 +68,9 @@ public class ClientBLL {
 			throw new NoSuchElementException("Client with id=" + clientId + " does " +
                     "not " + "exist");
 		}
+        if(ordersBLL.findByClientId(clientId) != null){
+            throw new IllegalStateException("Cannot delete client with id=" + clientId + " because it has orders");
+        }
 		dbWrapper.delete(clientId);
 	}
 

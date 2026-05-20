@@ -1,7 +1,7 @@
 package org.mishu.Business.Validator.Order;
 
 import org.mishu.Business.Validator.Validator;
-import org.mishu.Exceptions.ZeroQtyOrderException;
+import org.mishu.Utils.Exceptions.ZeroQtyOrderException;
 import org.mishu.Model.Orders;
 
 public class OrderValidator implements Validator<Orders> {

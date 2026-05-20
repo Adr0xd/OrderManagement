@@ -77,26 +77,4 @@ public class BillDBWrapper extends DBWrapper<Bill> {
 		return bills.getFirst();
 	}
 
-	/**
-	 * deletes an order by its id
-	 *
-	 * @param orderId
-	 *            delete the bill associated to an order by orderId
-	 */
-	public void deleteByOrderId(int orderId) {
-		String query = "DELETE FROM Log WHERE orderId = ?";
-		Connection conn = ConnectionFactory.getConnection();
-		PreparedStatement stmt = null;
-		try {
-			stmt = conn.prepareStatement(query);
-			stmt.setInt(1, orderId);
-			stmt.executeUpdate();
-		} catch (SQLException e) {
-			LOGGER.log(Level.WARNING, "BillDBWrapper: deleteByOrderId", e);
-		} finally {
-			ConnectionFactory.close(stmt);
-			ConnectionFactory.close(conn);
-		}
-	}
-
 }

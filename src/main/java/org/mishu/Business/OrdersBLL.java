@@ -16,149 +16,161 @@ import java.util.NoSuchElementException;
 
 public class OrdersBLL {
 
-	private final Validator<Orders> validator;
+    private final Validator<Orders> validator;
 
-	private final OrdersDBWrapper dbWrapper;
-	private final ProductDBWrapper productDBWrapper;
-	private final ClientDBWrapper clientDBWrapper;
-	private final BillDBWrapper billDBWrapper;
+    private final OrdersDBWrapper dbWrapper;
+    private final ProductDBWrapper productDBWrapper;
+    private final ClientDBWrapper clientDBWrapper;
+    private final BillDBWrapper billDBWrapper;
 
-	public OrdersBLL() {
-		this.validator = new OrderValidator();
+    public OrdersBLL() {
+        this.validator = new OrderValidator();
 
-		billDBWrapper = new BillDBWrapper(Bill.class);
-		this.dbWrapper = new OrdersDBWrapper(Orders.class);
-		this.clientDBWrapper = new ClientDBWrapper(Client.class);
-		this.productDBWrapper = new ProductDBWrapper(Product.class);
-	}
+        billDBWrapper = new BillDBWrapper(Bill.class);
+        this.dbWrapper = new OrdersDBWrapper(Orders.class);
+        this.clientDBWrapper = new ClientDBWrapper(Client.class);
+        this.productDBWrapper = new ProductDBWrapper(Product.class);
+    }
 
-	/**
-	 *
-	 * @param orderId
-	 *            order id to be fetched
-	 * @return Orders object with that id
-	 */
-	public Orders findOrderById(int orderId) {
-		Orders o = dbWrapper.findById(orderId);
-		if (o == null) {
-			throw new NoSuchElementException("Order with id=" + orderId + " does not " + "exist");
-		}
-		return o;
-	}
+    /**
+     *
+     * @param orderId order id to be fetched
+     * @return Orders object with that id
+     */
+    public Orders findOrderById(int orderId) {
+        Orders o = dbWrapper.findById(orderId);
+        if (o == null) {
+            throw new NoSuchElementException("Order with id=" + orderId + " does not "
+                    + "exist");
+        }
+        return o;
+    }
 
-	/**
-	 *
-	 * @return list of all orders
-	 */
-	public List<Orders> findAll() {
-		return dbWrapper.findAll();
-	}
+    public List<Orders> findByClientId(int clientId) {
+        List<Orders> orders = findAll().stream()
+                .filter(o -> o.getClientId() == clientId)
+                .toList();
+        if (orders.isEmpty()) {
+            throw new NoSuchElementException("No orders for client with id=" + clientId);
+        }
+        return orders;
+    }
 
-	/**
-	 *
-	 * @param order
-	 *            object to be inserted
-	 * @return integer representing the id of the newly inserted order
-	 */
-	public int insertOrder(Orders order) {
-		validator.validate(order);
+    public List<Orders> findByProductId(int productId) {
+        List<Orders> orders = findAll().stream()
+                .filter(o -> o.getProductId() == productId)
+                .toList();
+        if (orders.isEmpty()) {
+            throw new NoSuchElementException("No orders for product with id=" + productId);
+        }
+        return orders;
+    }
 
-		Product p = productDBWrapper.findById(order.getProductId());
-		if (p == null) {
-			throw new NoSuchElementException("Product with id=" + order.getProductId() + " does not exist");
-		}
+    /**
+     *
+     * @return list of all orders
+     */
+    public List<Orders> findAll() {
+        return dbWrapper.findAll();
+    }
 
-		Client c = clientDBWrapper.findById(order.getClientId());
-		if (c == null) {
-			throw new NoSuchElementException("Client with id=" + order.getClientId() + " does not exist");
-		}
+    /**
+     *
+     * @param order object to be inserted
+     */
+    public void insertOrder(Orders order) {
+        validator.validate(order);
 
-		if (p.getQuantity() < order.getQuantity()) {
-			throw new IllegalArgumentException("Not enough stock for product id=" + order.getProductId());
-		}
+        Product p = productDBWrapper.findById(order.getProductId());
+        if (p == null) {
+            throw new NoSuchElementException("Product with id=" + order.getProductId() + " does not exist");
+        }
 
-		p.setQuantity(p.getQuantity() - order.getQuantity());
-		productDBWrapper.update(p);
+        Client c = clientDBWrapper.findById(order.getClientId());
+        if (c == null) {
+            throw new NoSuchElementException("Client with id=" + order.getClientId() + " does not exist");
+        }
 
-		int orderId = dbWrapper.insert(order);
+        if (p.getQuantity() < order.getQuantity()) {
+            throw new IllegalArgumentException("Not enough stock for product id=" + order.getProductId());
+        }
 
-		double total = p.getPrice() * order.getQuantity();
-		billDBWrapper.insertBill(orderId, order.getClientId(), order.getProductId(), order.getQuantity(), total);
+        p.setQuantity(p.getQuantity() - order.getQuantity());
+        productDBWrapper.update(p);
 
-		return orderId;
-	}
+        int orderId = dbWrapper.insert(order);
 
-	/**
-	 *
-	 * @param orderId
-	 *            order id to be deleted, also deletes the bill associated with that
-	 *            order
-	 */
-	public void deleteOrder(int orderId) {
-		Orders o = dbWrapper.findById(orderId);
-		if (o == null) {
-			throw new NoSuchElementException("Order with id=" + orderId + " does not exist");
-		}
-		billDBWrapper.deleteByOrderId(orderId);
-		dbWrapper.delete(orderId);
-	}
+        double total = p.getPrice() * order.getQuantity();
+        billDBWrapper.insertBill(orderId, order.getClientId(), order.getProductId(), order.getQuantity(), total);
 
-	/**
-	 *
-	 * @param orderId
-	 *            order id to be updated
-	 * @param clientId
-	 *            client id to be updated, if null keep last
-	 * @param productId
-	 *            product id to be updated, if null keep last
-	 * @param quantity
-	 *            quantity to be updated, if null keep last
-	 */
-	public void updateOrder(int orderId, Integer clientId, Integer productId, Integer quantity) {
-		Orders o = dbWrapper.findById(orderId);
-		if (o == null) {
-			throw new NoSuchElementException("No order with id=" + orderId + " found");
-		}
+    }
 
-		int oldProductId = o.getProductId();
-		int oldQuantity = o.getQuantity();
+    /**
+     *
+     * @param orderId order id to be deleted, also deletes the bill associated with that
+     *                order
+     */
+    public void deleteOrder(int orderId) {
+        Orders o = dbWrapper.findById(orderId);
+        if (o == null) {
+            throw new NoSuchElementException("Order with id=" + orderId + " does not exist");
+        }
+        // delete only order, not bill, that stays in the system
+        dbWrapper.delete(orderId);
+    }
 
-		int newProductId = productId == null ? oldProductId : productId;
-		int newClientId = clientId == null ? o.getClientId() : clientId;
-		int newQuantity = quantity == null ? oldQuantity : quantity;
+    /**
+     *
+     * @param orderId   order id to be updated
+     * @param clientId  client id to be updated, if null keep last
+     * @param productId product id to be updated, if null keep last
+     * @param quantity  quantity to be updated, if null keep last
+     */
+    public void updateOrder(int orderId, Integer clientId, Integer productId, Integer quantity) {
+        Orders o = dbWrapper.findById(orderId);
+        if (o == null) {
+            throw new NoSuchElementException("No order with id=" + orderId + " found");
+        }
 
-		Product newProduct = productDBWrapper.findById(newProductId);
-		if (newProduct == null) {
-			throw new NoSuchElementException("Product with id=" + newProductId + " does not exist");
-		}
+        int oldProductId = o.getProductId();
+        int oldQuantity = o.getQuantity();
 
-		Client c = clientDBWrapper.findById(newClientId);
-		if (c == null) {
-			throw new NoSuchElementException("Client with id=" + newClientId + " does not exist");
-		}
+        int newProductId = productId == null ? oldProductId : productId;
+        int newClientId = clientId == null ? o.getClientId() : clientId;
+        int newQuantity = quantity == null ? oldQuantity : quantity;
 
-		if (oldProductId == newProductId) {
-			int difference = newQuantity - oldQuantity;
-			if (difference > 0 && newProduct.getQuantity() < difference) {
-				throw new IllegalArgumentException("Not enough stock for product id=" + newProductId);
-			}
-			newProduct.setQuantity(newProduct.getQuantity() - difference);
-			productDBWrapper.update(newProduct);
-		} else {
-			Product oldProduct = productDBWrapper.findById(oldProductId);
-			oldProduct.setQuantity(oldProduct.getQuantity() + oldQuantity);
-			productDBWrapper.update(oldProduct);
+        Product newProduct = productDBWrapper.findById(newProductId);
+        if (newProduct == null) {
+            throw new NoSuchElementException("Product with id=" + newProductId + " does not exist");
+        }
 
-			if (newProduct.getQuantity() < newQuantity) {
-				throw new IllegalArgumentException("Not enough stock for product id=" + newProductId);
-			}
-			newProduct.setQuantity(newProduct.getQuantity() - newQuantity);
-			productDBWrapper.update(newProduct);
-		}
-		o.setClientId(newClientId);
-		o.setProductId(newProductId);
-		o.setQuantity(newQuantity);
-		validator.validate(o);
-		dbWrapper.update(o);
-	}
+        Client c = clientDBWrapper.findById(newClientId);
+        if (c == null) {
+            throw new NoSuchElementException("Client with id=" + newClientId + " does not exist");
+        }
+
+        if (oldProductId == newProductId) {
+            int difference = newQuantity - oldQuantity;
+            if (difference > 0 && newProduct.getQuantity() < difference) {
+                throw new IllegalArgumentException("Not enough stock for product id=" + newProductId);
+            }
+            newProduct.setQuantity(newProduct.getQuantity() - difference);
+            productDBWrapper.update(newProduct);
+        } else {
+            Product oldProduct = productDBWrapper.findById(oldProductId);
+            oldProduct.setQuantity(oldProduct.getQuantity() + oldQuantity);
+            productDBWrapper.update(oldProduct);
+
+            if (newProduct.getQuantity() < newQuantity) {
+                throw new IllegalArgumentException("Not enough stock for product id=" + newProductId);
+            }
+            newProduct.setQuantity(newProduct.getQuantity() - newQuantity);
+            productDBWrapper.update(newProduct);
+        }
+        o.setClientId(newClientId);
+        o.setProductId(newProductId);
+        o.setQuantity(newQuantity);
+        validator.validate(o);
+        dbWrapper.update(o);
+    }
 }

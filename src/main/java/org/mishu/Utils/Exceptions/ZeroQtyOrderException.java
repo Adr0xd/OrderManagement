@@ -1,4 +1,4 @@
-package org.mishu.Exceptions;
+package org.mishu.Utils.Exceptions;
 
 /**
  * <p>

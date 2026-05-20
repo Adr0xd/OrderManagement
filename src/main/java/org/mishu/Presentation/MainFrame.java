@@ -3,6 +3,7 @@ package org.mishu.Presentation;
 import org.mishu.Business.ClientBLL;
 import org.mishu.Business.OrdersBLL;
 import org.mishu.Business.ProductBLL;
+import org.mishu.Model.Bill;
 import org.mishu.Model.Client;
 import org.mishu.Model.Orders;
 import org.mishu.Model.Product;
@@ -16,9 +17,9 @@ import java.util.List;
 
 public class MainFrame extends JFrame {
 
-	private final ClientBLL clientBLL = new ClientBLL();
-	private final ProductBLL productBLL = new ProductBLL();
 	private final OrdersBLL ordersBLL = new OrdersBLL();
+    private final ClientBLL clientBLL = new ClientBLL(ordersBLL);
+    private final ProductBLL productBLL = new ProductBLL(ordersBLL);
 	private final JTextField clientIdField = new JTextField(5);
 	private final JTextField clientNameField = new JTextField(14);
 	private final JTextField clientEmailField = new JTextField(14);
