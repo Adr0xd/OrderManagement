@@ -3,13 +3,15 @@ package org.mishu.Presentation;
 import org.mishu.Business.ClientBLL;
 import org.mishu.Business.OrdersBLL;
 import org.mishu.Business.ProductBLL;
-import org.mishu.Model.Bill;
 import org.mishu.Model.Client;
 import org.mishu.Model.Orders;
 import org.mishu.Model.Product;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -17,334 +19,572 @@ import java.util.List;
 
 public class MainFrame extends JFrame {
 
+	private static final Color BG = new Color(0x1e, 0x1e, 0x2e);
+	private static final Color SURFACE = new Color(0x28, 0x28, 0x3c);
+	private static final Color HEADER_BG = new Color(0x18, 0x18, 0x28);
+	private static final Color ACCENT = new Color(0x89, 0xb4, 0xfa);
+	private static final Color GREEN = new Color(0x40, 0xa0, 0x70);
+	private static final Color ORANGE = new Color(0xe0, 0x9a, 0x3e);
+	private static final Color RED = new Color(0xc0, 0x50, 0x50);
+	private static final Color TEXT = new Color(0xcd, 0xd6, 0xf4);
+	private static final Color MUTED = new Color(0x7f, 0x84, 0x9c);
+	private static final Color TABLE_HEADER_BG = new Color(0x31, 0x32, 0x44);
+	private static final Color TABLE_ALT = new Color(0x24, 0x24, 0x38);
+	private static final Color BORDER = new Color(0x45, 0x47, 0x5a);
+
 	private final OrdersBLL ordersBLL = new OrdersBLL();
-    private final ClientBLL clientBLL = new ClientBLL(ordersBLL);
-    private final ProductBLL productBLL = new ProductBLL(ordersBLL);
-	private final JTextField clientIdField = new JTextField(5);
-	private final JTextField clientNameField = new JTextField(14);
-	private final JTextField clientEmailField = new JTextField(14);
-	private final JTextField clientAddressField = new JTextField(14);
-	private final JTextField productIdField = new JTextField(5);
-	private final JTextField productNameField = new JTextField(14);
-	private final JTextField productPriceField = new JTextField(8);
-	private final JTextField productQuantityField = new JTextField(8);
+	private final ClientBLL clientBLL = new ClientBLL(ordersBLL);
+	private final ProductBLL productBLL = new ProductBLL(ordersBLL);
+
+	private final JTextField clientIdField = styledField(5);
+	private final JTextField clientNameField = styledField(15);
+	private final JTextField clientEmailField = styledField(15);
+	private final JTextField clientAddressField = styledField(15);
+	private final JTextField productIdField = styledField(5);
+	private final JTextField productNameField = styledField(15);
+	private final JTextField productPriceField = styledField(10);
+	private final JTextField productQuantityField = styledField(10);
+
 	private JTable clientTable, productTable, orderTable;
 	private DefaultTableModel clientModel, productModel, orderModel;
 	private Integer selectedClientId = null;
 	private Integer selectedProductId = null;
+	private JLabel statusLabel;
 
-	/**
-	 * main view constructor
-	 */
 	public MainFrame() {
 		setTitle("Order Management System");
 		setExtendedState(JFrame.MAXIMIZED_BOTH);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		getContentPane().setBackground(BG);
 		initUI();
 		loadClients();
 		loadProducts();
 	}
 
-	/**
-	 * initializes the ui
-	 */
 	private void initUI() {
-		JPanel allPanel = new JPanel(new BorderLayout());
+		setLayout(new BorderLayout());
+		add(buildHeader(), BorderLayout.NORTH);
 
-		JPanel topBar = new JPanel(new BorderLayout());
-		topBar.add(new JLabel("  Order Management"), BorderLayout.WEST);
+		JSplitPane topSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+				buildClientPanel(), buildProductPanel());
+		topSplit.setResizeWeight(0.5);
+		topSplit.setBorder(null);
+		topSplit.setBackground(BG);
 
-		JButton refreshButton = new JButton("Refresh All");
-		refreshButton.addActionListener(_ -> {
+		JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+				topSplit, buildOrderPanel());
+		mainSplit.setResizeWeight(0.6);
+		mainSplit.setBorder(null);
+		mainSplit.setBackground(BG);
+
+		add(mainSplit, BorderLayout.CENTER);
+		add(buildStatusBar(), BorderLayout.SOUTH);
+	}
+
+	private JPanel buildHeader() {
+		JPanel header = new JPanel(new BorderLayout());
+		header.setBackground(HEADER_BG);
+		header.setBorder(new EmptyBorder(14, 20, 14, 20));
+
+		JLabel title = new JLabel("Order Management System");
+		title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+		title.setForeground(TEXT);
+
+		JButton refresh = accentButton("  Refresh All", ACCENT);
+		refresh.addActionListener(_ -> {
 			loadClients();
 			loadProducts();
 			reloadOrders();
+			setStatus("Refreshed", false);
 		});
-		JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-		topRight.add(refreshButton);
-		topBar.add(topRight, BorderLayout.EAST);
 
-		allPanel.add(topBar, BorderLayout.NORTH);
-
-		JSplitPane leftRight = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildClientPanel(),
-				new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildProductPanel(), buildOrderPanel()));
-		leftRight.setResizeWeight(0.33);
-
-		JSplitPane inner = (JSplitPane) leftRight.getRightComponent();
-		inner.setResizeWeight(0.5);
-
-		allPanel.add(leftRight, BorderLayout.CENTER);
-		setContentPane(allPanel);
+		header.add(title, BorderLayout.WEST);
+		header.add(refresh, BorderLayout.EAST);
+		return header;
 	}
 
-	/**
-	 * builds the panel with the clients
-	 * 
-	 * @return JPanel with all clients
-	 */
+	private JPanel buildStatusBar() {
+		JPanel bar = new JPanel(new BorderLayout());
+		bar.setBackground(HEADER_BG);
+		bar.setBorder(new EmptyBorder(6, 20, 6, 20));
+		statusLabel = new JLabel("Ready");
+		statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+		statusLabel.setForeground(MUTED);
+		bar.add(statusLabel, BorderLayout.WEST);
+		return bar;
+	}
+
 	private JPanel buildClientPanel() {
-		clientModel = new DefaultTableModel(new String[]{"id", "name", "email", "address"}, 0) {
-			public boolean isCellEditable(int r, int c) {
-				return false;
-			}
-		};
-		clientTable = new JTable(clientModel);
+		clientModel = nonEditableModel();
+		clientTable = styledTable(clientModel);
 
 		clientTable.getSelectionModel().addListSelectionListener(e -> {
-			if (e.getValueIsAdjusting())
-				return;
+			if (e.getValueIsAdjusting()) return;
 			int row = clientTable.getSelectedRow();
-			if (row < 0)
-				return;
+			if (row < 0) return;
 			fillFields(clientModel, row, clientIdField, clientNameField, clientEmailField, clientAddressField);
 			selectedClientId = parseId(clientModel, row);
 			reloadOrders();
 		});
 
-		JPanel fields = fieldsRow("Id", clientIdField, "Name", clientNameField, "Email", clientEmailField, "Address",
-				clientAddressField);
+		JButton add = accentButton("+ Add", GREEN);
+		JButton update = accentButton("Edit", ORANGE);
+		JButton delete = accentButton("Delete", RED);
 
-		JButton addButton = new JButton("Add");
-		JButton updateButton = new JButton("Update");
-		JButton deleteButton = new JButton("Delete");
-
-		addButton.addActionListener(_ -> {
+		add.addActionListener(_ -> {
 			try {
-				clientBLL.insertClient(new Client(clientNameField.getText(), clientEmailField.getText(),
-						clientAddressField.getText()));
+				clientBLL.insertClient(new Client(clientNameField.getText(),
+						clientEmailField.getText(), clientAddressField.getText()));
 				loadClients();
+				setStatus("Client added", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
-
-		updateButton.addActionListener(_ -> {
+		update.addActionListener(_ -> {
 			try {
 				int id = Integer.parseInt(clientIdField.getText());
-				clientBLL.updateClient(id, clientNameField.getText(), clientEmailField.getText(),
-						clientAddressField.getText());
+				clientBLL.updateClient(id, clientNameField.getText(),
+						clientEmailField.getText(), clientAddressField.getText());
 				loadClients();
+				setStatus("Client updated", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
-
-		deleteButton.addActionListener(_ -> {
+		delete.addActionListener(_ -> {
 			try {
 				int id = Integer.parseInt(clientIdField.getText());
 				clientBLL.deleteClient(id);
 				selectedClientId = null;
 				loadClients();
 				orderModel.setRowCount(0);
+				setStatus("Client deleted", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
 
-		return buildSectionPanel("Clients", clientTable, fields, buttonRow(addButton, updateButton, deleteButton));
+		return buildSection("Clients",
+				clientTable,
+				fieldsRow("ID", clientIdField, "Name", clientNameField,
+						"Email", clientEmailField, "Address", clientAddressField),
+				buttonRow(add, update, delete));
 	}
 
-	/**
-	 * builds the panel with the products
-	 *
-	 * @return JPanel with all products
-	 */
 	private JPanel buildProductPanel() {
-		productModel = new DefaultTableModel(new String[]{"id", "name", "price", "quantity"}, 0) {
-			public boolean isCellEditable(int r, int c) {
-				return false;
-			}
-		};
-		productTable = new JTable(productModel);
+		productModel = nonEditableModel();
+		productTable = styledTable(productModel);
 
 		productTable.getSelectionModel().addListSelectionListener(e -> {
-			if (e.getValueIsAdjusting())
-				return;
+			if (e.getValueIsAdjusting()) return;
 			int row = productTable.getSelectedRow();
-			if (row < 0)
-				return;
-			fillFields(productModel, row, productIdField, productNameField, productPriceField, productQuantityField);
+			if (row < 0) return;
+			fillFields(productModel, row, productIdField, productNameField,
+					productPriceField, productQuantityField);
 			selectedProductId = parseId(productModel, row);
 		});
 
-		JPanel fields = fieldsRow("Id", productIdField, "Name", productNameField, "Price", productPriceField, "Qty",
-				productQuantityField);
+		JButton add = accentButton("+ Add", GREEN);
+		JButton update = accentButton("Edit", ORANGE);
+		JButton delete = accentButton("Delete", RED);
 
-		JButton addButton = new JButton("Add");
-		JButton updateButton = new JButton("Update");
-		JButton deleteButton = new JButton("Delete");
-
-		addButton.addActionListener(_ -> {
+		add.addActionListener(_ -> {
 			try {
-				productBLL.insertProduct(
-						new Product(productNameField.getText(), Double.parseDouble(productPriceField.getText()),
-								Integer.parseInt(productQuantityField.getText())));
+				productBLL.insertProduct(new Product(productNameField.getText(),
+						Double.parseDouble(productPriceField.getText()),
+						Integer.parseInt(productQuantityField.getText())));
 				loadProducts();
+				setStatus("Product added", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
-
-		updateButton.addActionListener(_ -> {
+		update.addActionListener(_ -> {
 			try {
 				int id = Integer.parseInt(productIdField.getText());
 				productBLL.updateProduct(id, productNameField.getText(),
 						Double.parseDouble(productPriceField.getText()),
 						Integer.parseInt(productQuantityField.getText()));
 				loadProducts();
+				setStatus("Product updated", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
-
-		deleteButton.addActionListener(_ -> {
+		delete.addActionListener(_ -> {
 			try {
 				int id = Integer.parseInt(productIdField.getText());
 				productBLL.deleteProduct(id);
 				selectedProductId = null;
 				loadProducts();
+				setStatus("Product deleted", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
 
-		return buildSectionPanel("Products", productTable, fields, buttonRow(addButton, updateButton, deleteButton));
+		return buildSection("Products",
+				productTable,
+				fieldsRow("ID", productIdField, "Name", productNameField,
+						"Price", productPriceField, "Qty", productQuantityField),
+				buttonRow(add, update, delete));
 	}
 
-	/**
-	 *
-	 * builds the panel with the orders
-	 *
-	 * @return JPanel with all orders for a client
-	 */
 	private JPanel buildOrderPanel() {
-		orderModel = new DefaultTableModel(new String[]{"id", "clientId", "productId", "quantity"}, 0) {
-			public boolean isCellEditable(int r, int c) {
-				return false;
-			}
-		};
-		orderTable = new JTable(orderModel);
+		orderModel = nonEditableModel();
+		orderTable = styledTable(orderModel);
 
-		JButton newOrderButton = new JButton("New Order");
-		JButton getBillButton = new JButton("Get Bill");
-		JButton deleteOrderButton = new JButton("Delete");
+		JButton newOrder = accentButton("+ New Order", GREEN);
+		JButton getBill = accentButton("$ Bill", ACCENT);
+		JButton deleteOrder = accentButton("Delete", RED);
 
-		newOrderButton.addActionListener(_ -> openNewOrderFrame());
+		newOrder.addActionListener(_ -> openNewOrderFrame());
 
-		getBillButton.addActionListener(_ -> {
+		getBill.addActionListener(_ -> {
 			int row = orderTable.getSelectedRow();
 			if (row < 0) {
 				showMessage("Select an order first.");
 				return;
 			}
-			int orderId = (Integer) orderModel.getValueAt(row, 0);
-			int productId = (Integer) orderModel.getValueAt(row, 2);
-			int qty = (Integer) orderModel.getValueAt(row, 3);
-			showBillDialog(orderId, productId, qty);
+			showBillDialog(
+					(Integer) orderModel.getValueAt(row, 0),
+					(Integer) orderModel.getValueAt(row, 2),
+					(Integer) orderModel.getValueAt(row, 3));
 		});
 
-		deleteOrderButton.addActionListener(_ -> {
+		deleteOrder.addActionListener(_ -> {
 			int row = orderTable.getSelectedRow();
 			if (row < 0) {
 				showMessage("Select an order to delete.");
 				return;
 			}
 			try {
-				int id = (Integer) orderModel.getValueAt(row, 0);
-				ordersBLL.deleteOrder(id);
+				ordersBLL.deleteOrder((Integer) orderModel.getValueAt(row, 0));
 				reloadOrders();
+				setStatus("Order deleted", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
 
-		JLabel orderMessage = new JLabel("Select a client to view orders");
+		JLabel hint = new JLabel("  Select a client to view their orders");
+		hint.setForeground(MUTED);
+		hint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
 		clientTable.getSelectionModel().addListSelectionListener(e -> {
-			if (e.getValueIsAdjusting())
-				return;
+			if (e.getValueIsAdjusting()) return;
 			int row = clientTable.getSelectedRow();
 			if (row >= 0)
-				orderMessage.setText("Orders for: " + clientModel.getValueAt(row, 1));
+				hint.setText("  Orders for:  " + clientModel.getValueAt(row, 1));
 		});
 
-		JPanel topRow = new JPanel(new BorderLayout());
-		topRow.add(orderMessage, BorderLayout.WEST);
+		JPanel hintPanel = new JPanel(new BorderLayout());
+		hintPanel.setOpaque(false);
+		hintPanel.add(hint, BorderLayout.WEST);
 
-		return buildSectionPanel("Orders", orderTable, topRow,
-				buttonRow(newOrderButton, getBillButton, deleteOrderButton));
+		return buildSection("Orders", orderTable, hintPanel, buttonRow(newOrder, getBill, deleteOrder));
 	}
 
-	/**
-	 * <p>
-	 * method for opening a new JFrame that will create and insert an order into the
-	 * table for a customer and a product that were selected in advance
-	 * </p>
-	 */
+	// ── component builders ──────────────────────────────────────────────────
+
+	private JPanel buildSection(String title, JTable table, JPanel middle, JPanel bottom) {
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.setBackground(BG);
+		panel.setBorder(BorderFactory.createLineBorder(BORDER));
+
+		JLabel lbl = new JLabel("  " + title.toUpperCase());
+		lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+		lbl.setForeground(ACCENT);
+		lbl.setBorder(new EmptyBorder(10, 10, 10, 10));
+		lbl.setOpaque(true);
+		lbl.setBackground(TABLE_HEADER_BG);
+
+		JScrollPane scroll = new JScrollPane(table);
+		scroll.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER));
+		scroll.getViewport().setBackground(BG);
+
+		JPanel south = new JPanel(new BorderLayout());
+		south.setBackground(SURFACE);
+		middle.setBackground(SURFACE);
+		bottom.setBackground(SURFACE);
+		south.add(middle, BorderLayout.CENTER);
+		south.add(bottom, BorderLayout.SOUTH);
+
+		panel.add(lbl, BorderLayout.NORTH);
+		panel.add(scroll, BorderLayout.CENTER);
+		panel.add(south, BorderLayout.SOUTH);
+		return panel;
+	}
+
+	private DefaultTableModel nonEditableModel() {
+		return new DefaultTableModel(new String[0], 0) {
+			public boolean isCellEditable(int r, int c) {
+				return false;
+			}
+		};
+	}
+
+	private JTable styledTable(DefaultTableModel model) {
+		JTable table = new JTable(model);
+		table.setBackground(BG);
+		table.setForeground(TEXT);
+		table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+		table.setRowHeight(30);
+		table.setShowGrid(false);
+		table.setIntercellSpacing(new Dimension(0, 0));
+		table.setSelectionBackground(new Color(0x45, 0x60, 0x90));
+		table.setSelectionForeground(Color.WHITE);
+		table.setFillsViewportHeight(true);
+
+		table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+			@Override
+			public Component getTableCellRendererComponent(
+					JTable t, Object value, boolean sel, boolean focus, int row, int col) {
+				super.getTableCellRendererComponent(t, value, sel, focus, row, col);
+				setBackground(sel ? new Color(0x45, 0x60, 0x90) : (row % 2 == 0 ? BG : TABLE_ALT));
+				setForeground(sel ? Color.WHITE : TEXT);
+				setBorder(new EmptyBorder(0, 10, 0, 10));
+				return this;
+			}
+		});
+
+		JTableHeader header = table.getTableHeader();
+		header.setBackground(TABLE_HEADER_BG);
+		header.setForeground(MUTED);
+		header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+		header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
+		header.setReorderingAllowed(false);
+
+		DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer() {
+			@Override
+			public Component getTableCellRendererComponent(
+					JTable t, Object value, boolean sel, boolean focus, int row, int col) {
+				super.getTableCellRendererComponent(t, value, sel, focus, row, col);
+				setBackground(TABLE_HEADER_BG);
+				setForeground(MUTED);
+				setBorder(new EmptyBorder(6, 10, 6, 10));
+				setFont(new Font("Segoe UI", Font.BOLD, 12));
+				return this;
+			}
+		};
+		table.getTableHeader().setDefaultRenderer(headerRenderer);
+
+		return table;
+	}
+
+	private JTextField styledField(int cols) {
+		JTextField f = new JTextField(cols);
+		f.setBackground(new Color(0x31, 0x32, 0x44));
+		f.setForeground(TEXT);
+		f.setCaretColor(TEXT);
+		f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+		f.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(BORDER),
+				new EmptyBorder(5, 8, 5, 8)));
+		return f;
+	}
+
+	private JButton accentButton(String text, Color color) {
+		JButton btn = new JButton(text) {
+			@Override
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				Color base = getModel().isPressed() ? color.darker().darker()
+						: getModel().isRollover() ? color.brighter() : color;
+				g2.setColor(base);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+				g2.dispose();
+				super.paintComponent(g);
+			}
+		};
+		btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+		btn.setForeground(Color.WHITE);
+		btn.setOpaque(false);
+		btn.setContentAreaFilled(false);
+		btn.setBorderPainted(false);
+		btn.setFocusPainted(false);
+		btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		btn.setBorder(new EmptyBorder(8, 18, 8, 18));
+		return btn;
+	}
+
+	private JPanel fieldsRow(Object... args) {
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
+		p.setOpaque(false);
+		for (int i = 0; i < args.length - 1; i += 2) {
+			JLabel lbl = new JLabel(args[i].toString() + ":");
+			lbl.setForeground(MUTED);
+			lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+			p.add(lbl);
+			p.add((JTextField) args[i + 1]);
+		}
+		return p;
+	}
+
+	private JPanel buttonRow(JButton... buttons) {
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+		p.setOpaque(false);
+		for (JButton b : buttons) p.add(b);
+		return p;
+	}
+
+	private void setStatus(String msg, boolean error) {
+		statusLabel.setText(msg);
+		statusLabel.setForeground(error ? RED : GREEN);
+	}
+
+	// ── data ────────────────────────────────────────────────────────────────
+
+	private void loadClients() {
+		populateTable(clientModel, clientBLL.findAll());
+	}
+
+	private void loadProducts() {
+		populateTable(productModel, productBLL.findAll());
+	}
+
+	private void reloadOrders() {
+		if (selectedClientId == null) return;
+		orderModel.setRowCount(0);
+		ordersBLL.findAll().stream()
+				.filter(o -> o.getClientId() == selectedClientId)
+				.forEach(o -> orderModel.addRow(reflectRow(o, "id", "clientId", "productId", "quantity")));
+	}
+
+	private <T> void populateTable(DefaultTableModel model, List<T> items) {
+		if (items.isEmpty()) {
+			model.setRowCount(0);
+			return;
+		}
+		Field[] fields = items.getFirst().getClass().getDeclaredFields();
+		model.setColumnIdentifiers(Arrays.stream(fields).map(Field::getName).toArray(String[]::new));
+		model.setRowCount(0);
+		for (T item : items) {
+			Object[] row = new Object[fields.length];
+			for (int i = 0; i < fields.length; i++) {
+				try {
+					fields[i].setAccessible(true);
+					row[i] = fields[i].get(item);
+				} catch (IllegalAccessException ex) {
+					row[i] = "?";
+				}
+			}
+			model.addRow(row);
+		}
+	}
+
+	private Object[] reflectRow(Object obj, String... fieldNames) {
+		Object[] row = new Object[fieldNames.length];
+		for (int i = 0; i < fieldNames.length; i++) {
+			try {
+				Field f = findField(obj.getClass(), fieldNames[i]);
+				f.setAccessible(true);
+				row[i] = f.get(obj);
+			} catch (Exception ex) {
+				row[i] = "?";
+			}
+		}
+		return row;
+	}
+
+	private Field findField(Class<?> clazz, String name) throws NoSuchFieldException {
+		while (clazz != null) {
+			try {
+				return clazz.getDeclaredField(name);
+			} catch (NoSuchFieldException ignored) {
+				clazz = clazz.getSuperclass();
+			}
+		}
+		throw new NoSuchFieldException(name);
+	}
+
+	private void fillFields(DefaultTableModel model, int row, JTextField... fields) {
+		for (int i = 0; i < fields.length && i < model.getColumnCount(); i++) {
+			Object val = model.getValueAt(row, i);
+			fields[i].setText(val != null ? val.toString() : "");
+		}
+	}
+
+	private int parseId(DefaultTableModel model, int row) {
+		return Integer.parseInt(model.getValueAt(row, 0).toString());
+	}
+
+	// ── dialogs ─────────────────────────────────────────────────────────────
+
 	private void openNewOrderFrame() {
 		if (selectedClientId == null) {
 			showMessage("Please select a client.");
 			return;
 		}
-
 		if (selectedProductId == null) {
 			showMessage("Please select a product.");
 			return;
 		}
 
-		JFrame frame = new JFrame("Create New Order");
-		frame.setSize(300, 200);
-		frame.setLocationRelativeTo(this);
-		frame.setResizable(false);
+		JDialog dlg = new JDialog(this, "New Order", true);
+		dlg.setSize(340, 240);
+		dlg.setLocationRelativeTo(this);
+		dlg.setResizable(false);
 
-		JPanel panel = new JPanel(new GridLayout(4, 2, 10, 10));
+		JPanel panel = new JPanel(new GridBagLayout());
+		panel.setBackground(SURFACE);
+		panel.setBorder(new EmptyBorder(20, 28, 20, 28));
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(7, 6, 7, 6);
+		c.anchor = GridBagConstraints.WEST;
 
-		JTextField qtyField = new JTextField("1");
+		JTextField qtyField = styledField(10);
+		qtyField.setText("1");
 
-		panel.add(new JLabel("Client ID:"));
-		panel.add(new JLabel(String.valueOf(selectedClientId)));
+		addDialogRow(panel, c, 0, "Client ID:", selectedClientId.toString());
+		addDialogRow(panel, c, 1, "Product ID:", selectedProductId.toString());
 
-		panel.add(new JLabel("Product ID:"));
-		panel.add(new JLabel(String.valueOf(selectedProductId)));
+		JLabel qtyLbl = new JLabel("Quantity:");
+		qtyLbl.setForeground(MUTED);
+		qtyLbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+		c.gridx = 0; c.gridy = 2; c.gridwidth = 1;
+		panel.add(qtyLbl, c);
+		c.gridx = 1;
+		panel.add(qtyField, c);
 
-		panel.add(new JLabel("Quantity:"));
-		panel.add(qtyField);
-
-		JButton confirm = new JButton("Create Order");
-
+		JButton confirm = accentButton("Create Order", GREEN);
 		confirm.addActionListener(_ -> {
 			try {
-				int qty = Integer.parseInt(qtyField.getText());
-
-				ordersBLL.insertOrder(new Orders(selectedClientId, selectedProductId, qty));
-
-				showMessage("Order created successfully!");
-
-				frame.dispose();
-
+				ordersBLL.insertOrder(new Orders(selectedClientId, selectedProductId,
+						Integer.parseInt(qtyField.getText())));
+				dlg.dispose();
 				reloadOrders();
-
+				setStatus("Order created", false);
 			} catch (Exception ex) {
 				showError(ex);
 			}
 		});
 
-		panel.add(new JLabel());
-		panel.add(confirm);
+		c.gridx = 0; c.gridy = 3; c.gridwidth = 2;
+		c.anchor = GridBagConstraints.CENTER;
+		c.insets = new Insets(16, 6, 0, 6);
+		panel.add(confirm, c);
 
-		frame.setContentPane(panel);
-		frame.setVisible(true);
+		dlg.setContentPane(panel);
+		dlg.setVisible(true);
 	}
 
-	/**
-	 * shows the bill
-	 *
-	 * @param orderId
-	 *            of the order
-	 * @param productId
-	 *            that was bought
-	 * @param qty
-	 *            quantity bought
-	 */
+	private void addDialogRow(JPanel panel, GridBagConstraints c, int row, String label, String value) {
+		JLabel lbl = new JLabel(label);
+		lbl.setForeground(MUTED);
+		lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+		JLabel val = new JLabel(value);
+		val.setForeground(TEXT);
+		val.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+		c.gridx = 0; c.gridy = row; c.gridwidth = 1;
+		panel.add(lbl, c);
+		c.gridx = 1;
+		panel.add(val, c);
+	}
+
 	private void showBillDialog(int orderId, int productId, int qty) {
 		try {
 			Product product = productBLL.findProductById(productId);
@@ -360,234 +600,27 @@ public class MainFrame extends JFrame {
 					TOTAL      : $%.2f""", orderId, product.getName(), unitPrice, qty, total);
 
 			JTextArea area = new JTextArea(billText);
-			area.setFont(new Font("Monospaced", Font.PLAIN, 13));
+			area.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+			area.setBackground(TABLE_ALT);
+			area.setForeground(TEXT);
 			area.setEditable(false);
+			area.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-			JDialog dlg = new JDialog(this, "Bill - Order #" + orderId, true);
+			JDialog dlg = new JDialog(this, "Bill — Order #" + orderId, true);
 			dlg.add(new JScrollPane(area));
 			dlg.pack();
 			dlg.setLocationRelativeTo(this);
 			dlg.setVisible(true);
-
 		} catch (Exception ex) {
 			showError(ex);
 		}
 	}
 
-	/**
-	 * load clients into the clients table
-	 */
-	private void loadClients() {
-		populateTable(clientModel, clientBLL.findAll());
-	}
-
-	/**
-	 * load products into the products table
-	 */
-	private void loadProducts() {
-		populateTable(productModel, productBLL.findAll());
-	}
-
-	/**
-	 * refresh button in case something does not update also loads/reloads the
-	 * orders of a selected client
-	 */
-	private void reloadOrders() {
-		if (selectedClientId == null)
-			return;
-		orderModel.setRowCount(0);
-		ordersBLL.findAll().stream().filter(o -> o.getClientId() == selectedClientId)
-				.forEach(o -> orderModel.addRow(reflectRow(o, "id", "clientId", "productId", "quantity")));
-	}
-
-	/**
-	 * Populates a table model with the values of the given items using reflection
-	 *
-	 * @param model
-	 *            the table model to be filled
-	 * @param items
-	 *            the list of items to be reflected and added to the table
-	 */
-	private <T> void populateTable(DefaultTableModel model, List<T> items) {
-		if (items.isEmpty()) {
-			model.setRowCount(0);
-			return;
-		}
-
-		Field[] fields = items.getFirst().getClass().getDeclaredFields();
-
-		String[] headers = Arrays.stream(fields).map(Field::getName).toArray(String[]::new);
-
-		model.setColumnIdentifiers(headers);
-		model.setRowCount(0);
-
-		for (T item : items) {
-			Object[] row = new Object[fields.length];
-			for (int i = 0; i < fields.length; i++) {
-				try {
-					fields[i].setAccessible(true);
-					row[i] = fields[i].get(item);
-				} catch (IllegalAccessException ex) {
-					row[i] = "?";
-				}
-			}
-			model.addRow(row);
-		}
-	}
-
-	/**
-	 * Extracts the values of the specified fields from an object using reflection
-	 * and stores them in an array representing a table row.
-	 *
-	 * @param obj
-	 *            the object from which the field values are extracted
-	 * @param fieldNames
-	 *            the names of the fields to be reflected
-	 * @return an array containing the values of the specified fields
-	 */
-	private Object[] reflectRow(Object obj, String... fieldNames) {
-		Object[] row = new Object[fieldNames.length];
-
-		for (int i = 0; i < fieldNames.length; i++) {
-			try {
-				Field f = findField(obj.getClass(), fieldNames[i]);
-				f.setAccessible(true);
-				row[i] = f.get(obj);
-			} catch (Exception ex) {
-				row[i] = "?";
-			}
-		}
-
-		return row;
-	}
-
-	/**
-	 * Searches for a field with the given name in the specified class or in one of
-	 * its superclasses.
-	 *
-	 * @param clazz
-	 *            the class where the search starts
-	 * @param name
-	 *            the name of the field to find
-	 * @return the field with the given name
-	 * @throws NoSuchFieldException
-	 *             if the field cannot be found in the class hierarchy
-	 */
-	private Field findField(Class<?> clazz, String name) throws NoSuchFieldException {
-		while (clazz != null) {
-			try {
-				return clazz.getDeclaredField(name);
-			} catch (NoSuchFieldException ignored) {
-				clazz = clazz.getSuperclass();
-			}
-		}
-		throw new NoSuchFieldException(name);
-	}
-
-	/**
-	 * Fills the given text fields with values from a selected table row.
-	 *
-	 * @param model
-	 *            the table model from which the values are read
-	 * @param row
-	 *            the selected row index
-	 * @param fields
-	 *            the text fields to be filled
-	 */
-	private void fillFields(DefaultTableModel model, int row, JTextField... fields) {
-		for (int i = 0; i < fields.length && i < model.getColumnCount(); i++) {
-			Object val = model.getValueAt(row, i);
-			fields[i].setText(val != null ? val.toString() : "");
-		}
-	}
-
-	/**
-	 * Parses the id value from the first column of the selected table row.
-	 *
-	 * @param model
-	 *            the table model from which the id is read
-	 * @param row
-	 *            the selected row index
-	 * @return the parsed id value
-	 */
-	private int parseId(DefaultTableModel model, int row) {
-		return Integer.parseInt(model.getValueAt(row, 0).toString());
-	}
-
-	/**
-	 * Builds a panel containing a titled table section and its control panels.
-	 *
-	 * @param title
-	 *            the title displayed around the section
-	 * @param table
-	 *            the table displayed in the center of the section
-	 * @param middle
-	 *            the panel placed above the bottom panel
-	 * @param bottom
-	 *            the panel placed at the bottom of the section
-	 * @return the constructed section panel
-	 */
-	private JPanel buildSectionPanel(String title, JTable table, JPanel middle, JPanel bottom) {
-		JPanel panel = new JPanel(new BorderLayout());
-		panel.setBorder(BorderFactory.createTitledBorder(title));
-
-		JPanel south = new JPanel(new BorderLayout());
-		south.add(middle, BorderLayout.NORTH);
-		south.add(bottom, BorderLayout.SOUTH);
-
-		panel.add(new JScrollPane(table), BorderLayout.CENTER);
-		panel.add(south, BorderLayout.SOUTH);
-
-		return panel;
-	}
-
-	/**
-	 * Builds a row panel containing labels and text fields.
-	 *
-	 * @param args
-	 *            pairs of label names and text fields
-	 * @return the constructed fields row panel
-	 */
-	private JPanel fieldsRow(Object... args) {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 6));
-		for (int i = 0; i < args.length - 1; i += 2) {
-			p.add(new JLabel(args[i].toString() + ":"));
-			p.add((JTextField) args[i + 1]);
-		}
-		return p;
-	}
-
-	/**
-	 * Builds a row panel containing the given buttons.
-	 *
-	 * @param buttons
-	 *            the buttons to be added to the row
-	 * @return the constructed button row panel
-	 */
-	private JPanel buttonRow(JButton... buttons) {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
-		for (JButton b : buttons) {
-			p.add(b);
-		}
-		return p;
-	}
-
-	/**
-	 * Displays an error dialog containing the exception message.
-	 *
-	 * @param e
-	 *            the exception whose message is displayed
-	 */
 	private void showError(Exception e) {
 		JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		setStatus("Error: " + e.getMessage(), true);
 	}
 
-	/**
-	 * Displays a message dialog containing the given message.
-	 *
-	 * @param message
-	 *            the message to be displayed
-	 */
 	private void showMessage(String message) {
 		JOptionPane.showMessageDialog(this, message);
 	}
